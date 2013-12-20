@@ -23,6 +23,47 @@ namespace PyBMP
 	/// </summary>
 	public partial class MainForm : Form
 	{
+		public class fcol
+		{
+			public float a, r, g, b;
+
+			public fcol(float aN, float rN, float gN, float bN)
+			{
+				a = aN;
+				r = rN;
+				g = gN;
+				b = bN;
+			}
+			
+			public fcol mul(float ac, float rc, float gc, float bc)
+			{
+				a *= ac;
+				r *= rc;
+				g *= gc;
+				b *= bc;
+				
+				return this;
+			}
+			
+			public fcol add(float ac, float rc, float gc, float bc)
+			{
+				a += ac;
+				r += rc;
+				g += gc;
+				b += bc;
+				
+				return this;
+			}
+			
+			public colour toColour()
+			{
+				return new colour(util.clampToByte(a),
+				                  util.clampToByte(r),
+				                  util.clampToByte(g),
+				                  util.clampToByte(b));
+			}
+		}
+		
 		[StructLayout(LayoutKind.Explicit)]
 		public struct colour
 		{
@@ -96,6 +137,11 @@ namespace PyBMP
 				                  util.clampToByte(gc + (int)g),
 				                  util.clampToByte(bc + (int)b));
 			}
+			
+			public fcol toFCol()
+			{
+				return new fcol(a, r, g, b);
+			}
 		}
 		
 		public class util
@@ -163,7 +209,7 @@ namespace PyBMP
 				protected set { heightL = value; }
 			}
 			
-			public abstract void close();
+			public virtual void close() { }
 			public abstract colour getCol(int x, int y);
 			public abstract void setCol(int x, int y, colour c);
 			
@@ -226,6 +272,33 @@ namespace PyBMP
 				bmp.UnlockBits(bmpDat);
 				bmp.Save(fileName, sdi.ImageFormat.Png);
 				bmp.Dispose();
+			}
+		}
+		
+		public unsafe class arraySurface : surface
+		{
+			colour[][] data;
+			
+			public arraySurface(int w, int h)
+			{
+				width = w;
+				height = h;
+				data = new colour[h][];
+				
+				for (int y = 0; y < h; y++)
+				{
+					data[y] = new colour[w];
+				}
+			}
+			
+			public override colour getCol(int x, int y)
+			{
+				return data[y][x];
+			}
+			
+			public override void setCol(int x, int y, colour c)
+			{
+				data[y][x] = c;
 			}
 		}
 		
@@ -339,10 +412,10 @@ namespace PyBMP
 				outImgLoc = "default.png";
 			}
 			
-			Bitmap tmap = new Bitmap(inImg.Image.Width, inImg.Image.Height);
+			//Bitmap tmap = new Bitmap(inImg.Image.Width, inImg.Image.Height);
 			
 			surface insurf = new bmpSurface((Bitmap)inImg.Image);
-			surface target = new bmpSurface(tmap);
+			surface target = new arraySurface(inImg.Image.Width, inImg.Image.Height);//new bmpSurface(tmap);
 			
 			shader shade = new shader(codeF.Text);
 			shade.process(target, new surface[] { insurf });
@@ -351,7 +424,7 @@ namespace PyBMP
 			
 			insurf.close();
 			target.close();
-			tmap.Dispose();
+			//tmap.Dispose();
 			
 			updateImgs();
 		}
