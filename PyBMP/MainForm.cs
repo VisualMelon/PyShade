@@ -16,7 +16,7 @@ using sing = Microsoft.Scripting;
 
 using System.Runtime.InteropServices;
 
-namespace PyBMP
+namespace PyShade
 {
 	/// <summary>
 	/// Description of MainForm.
@@ -272,32 +272,32 @@ namespace PyBMP
 			
 			public colour getCol_wrap(int x, int y)
 			{
-				return getCol(x, y, util.wrap);
+				return getCol(util.wrap(x, width - 1), util.wrap(y, height - 1));
 			}
 			
 			public void setCol_wrap(int x, int y, colour c)
 			{
-				setCol(x, y, c, util.wrap);
+				setCol(util.wrap(x, width - 1), util.wrap(y, height - 1), c);
 			}
 			
 			public colour getCol_mirror(int x, int y)
 			{
-				return getCol(x, y, util.mirror);
+				return getCol(util.mirror(x, width - 1), util.mirror(y, height - 1));
 			}
 			
 			public void setCol_mirror(int x, int y, colour c)
 			{
-				setCol(x, y, c, util.mirror);
+				setCol(util.mirror(x, width - 1), util.mirror(y, height - 1), c);
 			}
 			
 			public colour getCol_clamp(int x, int y)
 			{
-				return getCol(x, y, util.clamp);
+				return getCol(util.clamp(x, width - 1), util.clamp(y, height - 1));
 			}
 			
 			public void setCol_clamp(int x, int y, colour c)
 			{
-				setCol(x, y, c, util.clamp);
+				setCol(util.clamp(x, width - 1), util.clamp(y, height - 1), c);
 			}
 			
 			public virtual unsafe void save(string fileName)
@@ -381,6 +381,7 @@ namespace PyBMP
 			
 			void init(Bitmap bmpN)
 			{
+				// there is a reason for this
 				bmp = ((Bitmap)bmpN.Clone()).Clone(new Rectangle(0, 0, bmpN.Width, bmpN.Height), sdi.PixelFormat.Format32bppArgb);
 				
 				bmpDat = bmp.LockBits(new Rectangle(0, 0, bmp.Width, bmp.Height), sdi.ImageLockMode.ReadWrite, sdi.PixelFormat.Format32bppArgb);
@@ -431,10 +432,9 @@ namespace PyBMP
 			public shader(string codeN)
 			{
 				codeString = codeN;
-				init();
 			}
 			
-			void init()
+			public bool init(Action<string> reporter)
 			{
 				try
 				{
@@ -442,26 +442,30 @@ namespace PyBMP
 					pyScope = pyEngine.CreateScope();
 					pySource = pyEngine.CreateScriptSourceFromString(codeString, sing.SourceCodeKind.Statements);
 					pyCode = pySource.Compile();
+					return true;
 				}
 				catch (Exception ex)
 				{
-					MessageBox.Show(ex.Message, "Invalid Python");
+					reporter.Invoke("Compilation error: " + ex.Message);
+					return false;
 				}
 			}
 			
-			public void process(surface target, surface[] surfs)
+			public bool process(surface target, surface[] surfs, Action<string> reporter)
 			{
-				
 				pyScope.SetVariable("target", target);
 				pyScope.SetVariable("surfs", surfs);
+				pyScope.SetVariable("reporter", reporter);
 				
 				try
 				{
 					pyCode.Execute(pyScope);
+					return true;
 				}
 				catch (Exception ex)
 				{
-					MessageBox.Show(ex.Message);
+					reporter.Invoke("Processing error: " + ex.Message);
+					return false;
 				}
 			}
 		}
@@ -469,35 +473,102 @@ namespace PyBMP
 		public MainForm()
 		{
 			InitializeComponent();
+			reportMsg = new Action<string>(reportFT); // this side
+			reporter = new Action<string>(report); // other threads
+		}
+		
+		Action<string> reportMsg;
+		void reportFT(string msg)
+		{
+			if (msg == null)
+				return;
+			
+			reportF.Text += Environment.NewLine + msg;
+			reportF.Select(reportF.Text.Length, 0);
+			reportF.ScrollToCaret();
+			reportF.Invalidate();
+		}
+		
+		Action<string> reporter;
+		void report(string msg)
+		{
+			if (msg == null) // save the invokation, cheap anyway
+				return;
+			
+			this.Invoke(reportMsg, msg);
 		}
 		
 		void ProcessToolStripMenuItemClick(object sender, EventArgs e)
 		{
-			if (inImgLoc == null)
+			(new Action(process)).BeginInvoke(null, null);
+		}
+		
+		void process()
+		{
+			try
 			{
-				MessageBox.Show("Please provide an input image");
-				return;
+				bool carryon = true;
+			
+				System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
+				
+				if (inImgLoc == null)
+				{
+					report("Please provide an input image");
+					goto fail;
+				}
+				if (outImgLoc == null)
+				{
+					outImgLoc = "default.png";
+					report("No destination image, using defalut (default.png)");
+				}
+				
+				//Bitmap tmap = new Bitmap(inImg.Image.Width, inImg.Image.Height);
+				
+				surface insurf = new bmpSurface((Bitmap)inImg.Image);
+				surface target = new arraySurface(inImg.Image.Width, inImg.Image.Height);//new bmpSurface(tmap);
+				
+				sw.Reset();
+				sw.Start();
+				shader shade = new shader(codeF.Text);
+				carryon = shade.init(reporter);
+				sw.Stop();
+				if (carryon)
+					report("Code compiled (" + sw.ElapsedMilliseconds + "ms)");
+				else
+					goto fail;
+				
+				sw.Reset();
+				sw.Start();
+				carryon = shade.process(target, new surface[] { insurf }, reporter);
+				sw.Stop();
+				if (carryon)
+					report("Processed (" + sw.ElapsedMilliseconds + "ms)");
+				else
+					goto fail;
+				
+				sw.Reset();
+				sw.Start();
+				target.save(outImgLoc);
+				sw.Stop();
+				report("Saved output to " + outImgLoc + " (" + sw.ElapsedMilliseconds + "ms)");
+				
+				insurf.close();
+				target.close();
+				//tmap.Dispose();
+				
+				this.Invoke(new Action(updateImgs));
+				report("Finished.");
+				
 			}
-			if (outImgLoc == null)
+			catch (Exception ex)
 			{
-				outImgLoc = "default.png";
+				report("Failed with error " + ex.Message + ".");
 			}
 			
-			//Bitmap tmap = new Bitmap(inImg.Image.Width, inImg.Image.Height);
-			
-			surface insurf = new bmpSurface((Bitmap)inImg.Image);
-			surface target = new arraySurface(inImg.Image.Width, inImg.Image.Height);//new bmpSurface(tmap);
-			
-			shader shade = new shader(codeF.Text);
-			shade.process(target, new surface[] { insurf });
-			
-			target.save(outImgLoc);
-			
-			insurf.close();
-			target.close();
-			//tmap.Dispose();
-			
-			updateImgs();
+			return;
+		fail:
+			report("Failed.");
+			return;
 		}
 		
 		string inImgLoc = null;

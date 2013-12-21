@@ -6,7 +6,7 @@
  * 
  * To change this template use Tools | Options | Coding | Edit Standard Headers.
  */
-namespace PyBMP
+namespace PyShade
 {
 	partial class MainForm
 	{
@@ -45,6 +45,7 @@ namespace PyBMP
 			this.processToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
 			this.saveFileDialog1 = new System.Windows.Forms.SaveFileDialog();
+			this.reportF = new System.Windows.Forms.TextBox();
 			this.splitContainer1.Panel1.SuspendLayout();
 			this.splitContainer1.Panel2.SuspendLayout();
 			this.splitContainer1.SuspendLayout();
@@ -70,8 +71,9 @@ namespace PyBMP
 			// splitContainer1.Panel2
 			// 
 			this.splitContainer1.Panel2.Controls.Add(this.codeF);
-			this.splitContainer1.Size = new System.Drawing.Size(402, 249);
-			this.splitContainer1.SplitterDistance = 103;
+			this.splitContainer1.Panel2.Controls.Add(this.reportF);
+			this.splitContainer1.Size = new System.Drawing.Size(439, 406);
+			this.splitContainer1.SplitterDistance = 142;
 			this.splitContainer1.TabIndex = 2;
 			// 
 			// splitContainer2
@@ -87,8 +89,8 @@ namespace PyBMP
 			// splitContainer2.Panel2
 			// 
 			this.splitContainer2.Panel2.Controls.Add(this.outImg);
-			this.splitContainer2.Size = new System.Drawing.Size(402, 103);
-			this.splitContainer2.SplitterDistance = 195;
+			this.splitContainer2.Size = new System.Drawing.Size(439, 142);
+			this.splitContainer2.SplitterDistance = 212;
 			this.splitContainer2.TabIndex = 0;
 			// 
 			// inImg
@@ -97,7 +99,7 @@ namespace PyBMP
 			this.inImg.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.inImg.Location = new System.Drawing.Point(0, 0);
 			this.inImg.Name = "inImg";
-			this.inImg.Size = new System.Drawing.Size(195, 103);
+			this.inImg.Size = new System.Drawing.Size(212, 142);
 			this.inImg.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
 			this.inImg.TabIndex = 0;
 			this.inImg.TabStop = false;
@@ -109,7 +111,7 @@ namespace PyBMP
 			this.outImg.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.outImg.Location = new System.Drawing.Point(0, 0);
 			this.outImg.Name = "outImg";
-			this.outImg.Size = new System.Drawing.Size(203, 103);
+			this.outImg.Size = new System.Drawing.Size(223, 142);
 			this.outImg.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
 			this.outImg.TabIndex = 1;
 			this.outImg.TabStop = false;
@@ -122,7 +124,7 @@ namespace PyBMP
 			this.codeF.Multiline = true;
 			this.codeF.Name = "codeF";
 			this.codeF.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-			this.codeF.Size = new System.Drawing.Size(402, 142);
+			this.codeF.Size = new System.Drawing.Size(439, 202);
 			this.codeF.TabIndex = 0;
 			this.codeF.Text = "for y in range(target.height):\r\n\tfor x in range(target.width):\r\n\t\tcol = surfs[0]." +
 			"getCol_clamp(x, y)\r\n\t\ttarget.setCol_clamp(x, y, col)";
@@ -134,7 +136,7 @@ namespace PyBMP
 									this.processToolStripMenuItem});
 			this.menuStrip1.Location = new System.Drawing.Point(0, 0);
 			this.menuStrip1.Name = "menuStrip1";
-			this.menuStrip1.Size = new System.Drawing.Size(402, 24);
+			this.menuStrip1.Size = new System.Drawing.Size(439, 24);
 			this.menuStrip1.TabIndex = 3;
 			this.menuStrip1.Text = "menuStrip1";
 			// 
@@ -154,11 +156,21 @@ namespace PyBMP
 			this.saveFileDialog1.DefaultExt = "png";
 			this.saveFileDialog1.Filter = "PNGs|*.png";
 			// 
+			// reportF
+			// 
+			this.reportF.Dock = System.Windows.Forms.DockStyle.Bottom;
+			this.reportF.Location = new System.Drawing.Point(0, 202);
+			this.reportF.Multiline = true;
+			this.reportF.Name = "reportF";
+			this.reportF.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+			this.reportF.Size = new System.Drawing.Size(439, 58);
+			this.reportF.TabIndex = 1;
+			// 
 			// MainForm
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-			this.ClientSize = new System.Drawing.Size(402, 273);
+			this.ClientSize = new System.Drawing.Size(439, 430);
 			this.Controls.Add(this.splitContainer1);
 			this.Controls.Add(this.menuStrip1);
 			this.Name = "MainForm";
@@ -177,6 +189,7 @@ namespace PyBMP
 			this.ResumeLayout(false);
 			this.PerformLayout();
 		}
+		private System.Windows.Forms.TextBox reportF;
 		private System.Windows.Forms.TextBox codeF;
 		private System.Windows.Forms.ToolStripMenuItem processToolStripMenuItem;
 		private System.Windows.Forms.SaveFileDialog saveFileDialog1;

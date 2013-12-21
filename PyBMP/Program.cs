@@ -9,7 +9,7 @@
 using System;
 using System.Windows.Forms;
 
-namespace PyBMP
+namespace PyShade
 {
 	/// <summary>
 	/// Class with program entry point.
