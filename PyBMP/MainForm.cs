@@ -55,6 +55,26 @@ namespace PyShade
 				return this;
 			}
 			
+			public fcol mul(float coof)
+			{
+				a *= coof;
+				r *= coof;
+				g *= coof;
+				b *= coof;
+				
+				return this;
+			}
+			
+			public fcol mulRGB(float coof)
+			{
+				a *= coof;
+				r *= coof;
+				g *= coof;
+				b *= coof;
+				
+				return this;
+			}
+			
 			public fcol mul(fcol ofc)
 			{
 				a *= ofc.a;
@@ -158,6 +178,22 @@ namespace PyShade
 				                  util.clampToByte(rc * (float)r),
 				                  util.clampToByte(gc * (float)g),
 				                  util.clampToByte(bc * (float)b));
+			}
+			
+			public colour mul(float c)
+			{
+				return new colour(util.clampToByte(c * (float)a),
+				                  util.clampToByte(c * (float)r),
+				                  util.clampToByte(c * (float)g),
+				                  util.clampToByte(c * (float)b));
+			}
+			
+			public colour mulRGB(float c)
+			{
+				return new colour(a,
+				                  util.clampToByte(c * (float)r),
+				                  util.clampToByte(c * (float)g),
+				                  util.clampToByte(c * (float)b));
 			}
 			
 			public colour add(int ac, int rc, int gc, int bc)
@@ -619,11 +655,35 @@ namespace PyShade
 				}
 			}
 			
+			public delegate colour shadeFunc1(colour src);
+			public static void perPixelShade1(shadeFunc1 shadeFunc, surface target, surface surf)
+			{
+				region src = surf.getRegion();
+				src.iterate(0, 0, target.width - 1, target.height - 1);
+				region trg = target.getRegion();
+				trg.iterate(0, 0, target.width - 1, target.height - 1);
+			
+				while (trg.setCol(shadeFunc(src.getCol()))) { }
+			}
+			
+			public delegate colour blendFunc1(colour trg, colour src);
+			public static void perPixelBlend1(blendFunc1 blendFunc, surface target, surface surf)
+			{
+				region src = surf.getRegion();
+				src.iterate(0, 0, target.width - 1, target.height - 1);
+				region trg = target.getRegion();
+				trg.iterate(0, 0, target.width - 1, target.height - 1);
+				
+				while (trg.setCol(blendFunc(trg.peekCol(), src.getCol()))) { }
+			}
+			
 			public bool process(surface target, surface[] surfs, Action<string> reporter)
 			{
 				pyScope.SetVariable("target", target);
 				pyScope.SetVariable("surfs", surfs);
 				pyScope.SetVariable("reporter", reporter);
+				pyScope.SetVariable("pps1", new Action<shadeFunc1, surface, surface>(perPixelShade1));
+				pyScope.SetVariable("ppb1", new Action<blendFunc1, surface, surface>(perPixelBlend1));
 				
 				try
 				{
@@ -693,8 +753,12 @@ namespace PyShade
 					report("No destination image, using default (default.png)");
 				}
 				
+				sw.Reset();
+				sw.Start();
 				surface insurf = new bmpSurface((Bitmap)inImg.Image);
 				surface target = new arraySurface(inImg.Image.Width, inImg.Image.Height);
+				sw.Stop();
+				report("Setup surfaces (" + sw.ElapsedMilliseconds + "ms)");
 				
 				sw.Reset();
 				sw.Start();

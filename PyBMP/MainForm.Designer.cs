@@ -91,7 +91,7 @@ namespace PyShade
 			// 
 			this.splitContainer2.Panel2.Controls.Add(this.outImg);
 			this.splitContainer2.Size = new System.Drawing.Size(439, 142);
-			this.splitContainer2.SplitterDistance = 211;
+			this.splitContainer2.SplitterDistance = 217;
 			this.splitContainer2.TabIndex = 0;
 			// 
 			// inImg
@@ -100,7 +100,7 @@ namespace PyShade
 			this.inImg.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.inImg.Location = new System.Drawing.Point(0, 0);
 			this.inImg.Name = "inImg";
-			this.inImg.Size = new System.Drawing.Size(211, 142);
+			this.inImg.Size = new System.Drawing.Size(217, 142);
 			this.inImg.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
 			this.inImg.TabIndex = 0;
 			this.inImg.TabStop = false;
@@ -112,7 +112,7 @@ namespace PyShade
 			this.outImg.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.outImg.Location = new System.Drawing.Point(0, 0);
 			this.outImg.Name = "outImg";
-			this.outImg.Size = new System.Drawing.Size(224, 142);
+			this.outImg.Size = new System.Drawing.Size(218, 142);
 			this.outImg.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
 			this.outImg.TabIndex = 1;
 			this.outImg.TabStop = false;
@@ -120,6 +120,8 @@ namespace PyShade
 			// 
 			// codeF
 			// 
+			this.codeF.AcceptsReturn = true;
+			this.codeF.AcceptsTab = true;
 			this.codeF.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.codeF.Location = new System.Drawing.Point(0, 0);
 			this.codeF.Multiline = true;
@@ -135,6 +137,7 @@ namespace PyShade
 			this.reportF.Dock = System.Windows.Forms.DockStyle.Bottom;
 			this.reportF.Location = new System.Drawing.Point(0, 164);
 			this.reportF.Name = "reportF";
+			this.reportF.ReadOnly = true;
 			this.reportF.Size = new System.Drawing.Size(439, 96);
 			this.reportF.TabIndex = 1;
 			this.reportF.Text = "";
