@@ -45,7 +45,7 @@ namespace PyShade
 			this.processToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
 			this.saveFileDialog1 = new System.Windows.Forms.SaveFileDialog();
-			this.reportF = new System.Windows.Forms.TextBox();
+			this.reportF = new System.Windows.Forms.RichTextBox();
 			this.splitContainer1.Panel1.SuspendLayout();
 			this.splitContainer1.Panel2.SuspendLayout();
 			this.splitContainer1.SuspendLayout();
@@ -90,7 +90,7 @@ namespace PyShade
 			// 
 			this.splitContainer2.Panel2.Controls.Add(this.outImg);
 			this.splitContainer2.Size = new System.Drawing.Size(439, 142);
-			this.splitContainer2.SplitterDistance = 212;
+			this.splitContainer2.SplitterDistance = 211;
 			this.splitContainer2.TabIndex = 0;
 			// 
 			// inImg
@@ -99,7 +99,7 @@ namespace PyShade
 			this.inImg.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.inImg.Location = new System.Drawing.Point(0, 0);
 			this.inImg.Name = "inImg";
-			this.inImg.Size = new System.Drawing.Size(212, 142);
+			this.inImg.Size = new System.Drawing.Size(211, 142);
 			this.inImg.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
 			this.inImg.TabIndex = 0;
 			this.inImg.TabStop = false;
@@ -111,7 +111,7 @@ namespace PyShade
 			this.outImg.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.outImg.Location = new System.Drawing.Point(0, 0);
 			this.outImg.Name = "outImg";
-			this.outImg.Size = new System.Drawing.Size(223, 142);
+			this.outImg.Size = new System.Drawing.Size(224, 142);
 			this.outImg.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
 			this.outImg.TabIndex = 1;
 			this.outImg.TabStop = false;
@@ -124,10 +124,11 @@ namespace PyShade
 			this.codeF.Multiline = true;
 			this.codeF.Name = "codeF";
 			this.codeF.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-			this.codeF.Size = new System.Drawing.Size(439, 202);
+			this.codeF.Size = new System.Drawing.Size(439, 164);
 			this.codeF.TabIndex = 0;
-			this.codeF.Text = "for y in range(target.height):\r\n\tfor x in range(target.width):\r\n\t\tcol = surfs[0]." +
-			"getCol_clamp(x, y)\r\n\t\ttarget.setCol_clamp(x, y, col)";
+			this.codeF.Text = "yrange = range(target.height)\r\nxrange = range(target.width)\r\ngetc = surfs[0].getC" +
+			"ol_clamp\r\nsetc = target.setCol_clamp\r\n\r\nfor y in yrange:\r\n\tfor x in xrange:\r\n\t\tc" +
+			"ol = getc(x, y)\r\n\t\tsetc(x, y, col)";
 			this.codeF.WordWrap = false;
 			// 
 			// menuStrip1
@@ -159,12 +160,11 @@ namespace PyShade
 			// reportF
 			// 
 			this.reportF.Dock = System.Windows.Forms.DockStyle.Bottom;
-			this.reportF.Location = new System.Drawing.Point(0, 202);
-			this.reportF.Multiline = true;
+			this.reportF.Location = new System.Drawing.Point(0, 164);
 			this.reportF.Name = "reportF";
-			this.reportF.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-			this.reportF.Size = new System.Drawing.Size(439, 58);
+			this.reportF.Size = new System.Drawing.Size(439, 96);
 			this.reportF.TabIndex = 1;
+			this.reportF.Text = "";
 			// 
 			// MainForm
 			// 
@@ -189,7 +189,7 @@ namespace PyShade
 			this.ResumeLayout(false);
 			this.PerformLayout();
 		}
-		private System.Windows.Forms.TextBox reportF;
+		private System.Windows.Forms.RichTextBox reportF;
 		private System.Windows.Forms.TextBox codeF;
 		private System.Windows.Forms.ToolStripMenuItem processToolStripMenuItem;
 		private System.Windows.Forms.SaveFileDialog saveFileDialog1;

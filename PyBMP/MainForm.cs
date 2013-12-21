@@ -483,10 +483,9 @@ namespace PyShade
 			if (msg == null)
 				return;
 			
-			reportF.Text += Environment.NewLine + msg;
+			reportF.AppendText(Environment.NewLine + msg);
 			reportF.Select(reportF.Text.Length, 0);
 			reportF.ScrollToCaret();
-			reportF.Invalidate();
 		}
 		
 		Action<string> reporter;
@@ -507,6 +506,10 @@ namespace PyShade
 		{
 			try
 			{
+				System.Diagnostics.Stopwatch osw = new System.Diagnostics.Stopwatch();
+				osw.Reset();
+				osw.Start();
+				
 				bool carryon = true;
 			
 				System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
@@ -519,7 +522,7 @@ namespace PyShade
 				if (outImgLoc == null)
 				{
 					outImgLoc = "default.png";
-					report("No destination image, using defalut (default.png)");
+					report("No destination image, using default (default.png)");
 				}
 				
 				//Bitmap tmap = new Bitmap(inImg.Image.Width, inImg.Image.Height);
@@ -554,11 +557,10 @@ namespace PyShade
 				
 				insurf.close();
 				target.close();
-				//tmap.Dispose();
 				
 				this.Invoke(new Action(updateImgs));
-				report("Finished.");
-				
+				report("Finished (" + osw.ElapsedMilliseconds + "ms).");
+				osw.Stop();
 			}
 			catch (Exception ex)
 			{
