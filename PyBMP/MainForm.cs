@@ -274,14 +274,51 @@ namespace PyShade
 			}
 		}
 		
-		// iterator
-		public abstract unsafe class region
+		public interface iterable
 		{
-			public abstract void iterate(int sx, int sy, int ex, int ey);
+			void moveToStart();
+			void moveToEnd();
+			void qmove();
+			void qmoveBack();
+			bool move();
+			bool moveBack();
+			colour getCol();
+			colour peekCol();
+			bool getCol(out colour c);
+			void qsetCol(colour c);
+			bool setCol(colour c);
+		}
+		
+		// iterates everything
+		public abstract unsafe class iterator : iterable
+		{
+			public abstract void moveToStart();
+			public abstract void moveToEnd();
+			public abstract void qmove();
+			public abstract void qmoveBack();
 			public abstract bool move();
 			public abstract bool moveBack();
 			public abstract colour getCol();
 			public abstract colour peekCol();
+			public abstract bool getCol(out colour c);
+			public abstract void qsetCol(colour c);
+			public abstract bool setCol(colour c);
+		}
+		
+		// iterates "region"
+		public abstract unsafe class region : iterable
+		{
+			public abstract void iterate(int sx, int sy, int ex, int ey); // moves to start
+			public abstract void moveToStart();
+			public abstract void moveToEnd();
+			public abstract void qmove();
+			public abstract void qmoveBack();
+			public abstract bool move();
+			public abstract bool moveBack();
+			public abstract colour getCol();
+			public abstract colour peekCol();
+			public abstract bool getCol(out colour c);
+			public abstract void qsetCol(colour c);
 			public abstract bool setCol(colour c);
 		}
 		
@@ -306,6 +343,7 @@ namespace PyShade
 			public abstract colour getCol(int x, int y);
 			public abstract void setCol(int x, int y, colour c);
 			public abstract void clear(colour c);
+			public abstract iterator getIterator();
 			public abstract region getRegion();
 			
 			public colour getCol(int x, int y, util.getFunc gf)
@@ -351,17 +389,39 @@ namespace PyShade
 			public virtual unsafe void save(string fileName)
 			{
 				Bitmap bmp = new Bitmap(width, height);
-				sdi.BitmapData bmpDat = bmp.LockBits(new Rectangle(0, 0, bmp.Width, bmp.Height), sdi.ImageLockMode.WriteOnly, sdi.PixelFormat.Format32bppArgb);
+				sdi.BitmapData bmpDat = bmp.LockBits(new Rectangle(0, 0, width, height), sdi.ImageLockMode.WriteOnly, sdi.PixelFormat.Format32bppArgb);
 				
-				int* s = (int*)bmpDat.Scan0;
-				
-				for (int y = 0; y < height; y++)
+				for (int i = 0; i < 20; i++)
 				{
-					for (int x = 0; x < width; x++)
+					int* s = (int*)bmpDat.Scan0;
+				
+					iterator r = getIterator();
+					
+					colour c;
+					while (r.getCol(out c))
 					{
-						*s = getCol(x, y).argb;
+						*s = c.argb;
 						s++;
 					}
+					*s = c.argb; // catch last pil
+					
+//					do
+//					{
+//						*s = r.peekCol().argb;
+//						s++;
+//					}
+//					while (r.move());
+				
+//					s = (int*)bmpDat.Scan0;
+//					
+//					for (int y = 0; y < height; y++)
+//					{
+//						for (int x = 0; x < width; x++)
+//						{
+//							*s = getCol(x, y).argb;
+//							s++;
+//						}
+//					}
 				}
 				
 				bmp.UnlockBits(bmpDat);
@@ -371,9 +431,145 @@ namespace PyShade
 		}
 		
 		// iterator
+		public unsafe class arrayIterator : iterator
+		{
+			colour[][] data;
+			colour[] row;
+			int wm1;
+			int hm1;
+			int x;
+			int y;
+			
+			public arrayIterator(colour[][] surfData)
+			{
+				data = surfData;
+				hm1 = data.Length - 1;
+				wm1 = data[0].Length - 1;
+				moveToStart();
+			}
+			
+			public override void moveToStart()
+			{
+				x = 0;
+				y = 0;
+				row = data[y];
+			}
+			
+			public override void moveToEnd()
+			{
+				x = wm1;
+				y = hm1;
+				row = data[y];
+			}
+			
+			public override void qmove()
+			{
+				if (x >= wm1)
+				{
+					x = 0;
+					if (y > hm1)
+					{
+						y = 0;
+					}
+					else
+						y++;
+					row = data[y];
+				}
+				else
+					x++;
+			}
+			
+			public override void qmoveBack()
+			{
+				if (x <= 0)
+				{
+					x = wm1;
+					if (y < 0)
+					{
+						y = hm1;
+					}
+					else
+						y--;
+					row = data[y];
+				}
+				else
+					x--;
+			}
+			
+			public override bool move()
+			{
+				if (x >= wm1)
+				{
+					x = 0;
+					if (y >= hm1)
+					{
+						y = 0;
+						row = data[y];
+						return false;
+					}
+					y++;
+					row = data[y];
+				}
+				else
+					x++;
+				return true;
+			}
+			
+			public override bool moveBack()
+			{
+				if (x <= 0)
+				{
+					x = wm1;
+					if (y <= 0)
+					{
+						y = hm1;
+						row = data[y];
+						return false;
+					}
+					y--;
+					row = data[y];
+				}
+				else
+					x--;
+				return true;
+			}
+			
+			public override colour getCol()
+			{
+				colour res = peekCol();
+				qmove();
+				return res;
+			}
+			
+			public override colour peekCol()
+			{
+				return row[x];
+			}
+			
+			public override bool getCol(out colour c)
+			{
+				c = peekCol();
+				return move();
+			}
+			
+			public override void qsetCol(colour c)
+			{
+				row[x] = c;
+				qmove();
+			}
+			
+			public override bool setCol(colour c)
+			{
+				row[x] = c;
+				return move();
+			}
+		}
+		
+		// iterator
 		public unsafe class arrayRegion : region
 		{
 			colour[][] data;
+			colour[] row;
 			int w;
 			int h;
 			int sx;
@@ -394,10 +590,60 @@ namespace PyShade
 			{
 				this.sx = sx;
 				this.sy = sy;
-				x = sx;
-				y = sy;
 				this.ey = ey;
 				this.ex = ex;
+				
+				moveToStart();
+			}
+			
+			public override void moveToStart()
+			{
+				x = sx;
+				y = sy;
+				row = data[y];
+			}
+			
+			public override void moveToEnd()
+			{
+				x = ex;
+				y = ey;
+				row = data[y];
+			}
+			
+			public override void qmove()
+			{
+				if (y == ey && x >= ex)
+				{
+					x = sx;
+					y = sy;
+					row = data[y];
+					return;
+				}
+				x++;
+				if (x >= w)
+				{
+					y++;
+					x = 0;
+					row = data[y];
+				}
+			}
+			
+			public override void qmoveBack()
+			{
+				if (y == sy && x <= sx)
+				{
+					x = ex;
+					y = ey;
+					row = data[y];
+					return;
+				}
+				x--;
+				if (x < 0)
+				{
+					y--;
+					x = w - 1;
+					row = data[y];
+				}
 			}
 			
 			public override bool move()
@@ -406,6 +652,7 @@ namespace PyShade
 				{
 					x = sx;
 					y = sy;
+					row = data[y];
 					return false;
 				}
 				x++;
@@ -413,23 +660,26 @@ namespace PyShade
 				{
 					y++;
 					x = 0;
+					row = data[y];
 				}
 				return true;
 			}
 			
 			public override bool moveBack()
 			{
-				x--;
-				if (y == sy && x < sx)
+				if (y == sy && x <= sx)
 				{
 					x = ex;
 					y = ey;
+					row = data[y];
 					return false;
 				}
+				x--;
 				if (x < 0)
 				{
 					y--;
 					x = w - 1;
+					row = data[y];
 				}
 				return true;
 			}
@@ -437,18 +687,30 @@ namespace PyShade
 			public override colour getCol()
 			{
 				colour res = peekCol();
-				move();
+				qmove();
 				return res;
 			}
 			
 			public override colour peekCol()
 			{
-				return data[y][x];
+				return row[x];
+			}
+			
+			public override bool getCol(out colour c)
+			{
+				c = peekCol();
+				return move();
+			}
+			
+			public override void qsetCol(colour c)
+			{
+				row[x] = c;
+				qmove();
 			}
 			
 			public override bool setCol(colour c)
 			{
-				data[y][x] = c;
+				row[x] = c;
 				return move();
 			}
 		}
@@ -496,6 +758,115 @@ namespace PyShade
 			{
 				return new arrayRegion(data);
 			}
+			
+			public override iterator getIterator()
+			{
+				return new arrayIterator(data);
+			}
+		}
+		
+		// iterator
+		public unsafe class bmpIterator : iterator
+		{
+			sdi.BitmapData dat;
+			int idx;
+			int eidx;
+			int* scn0;
+			
+			public bmpIterator(sdi.BitmapData bmpDat)
+			{
+				dat = bmpDat;
+				scn0 = (int*)dat.Scan0;
+				eidx = dat.Height * dat.Width;
+				moveToStart();
+			}
+			
+			public override void moveToStart()
+			{
+				idx = 0;
+			}
+			
+			public override void moveToEnd()
+			{
+				idx = eidx;
+			}
+			
+			public override void qmove()
+			{
+				if (idx >= eidx)
+				{
+					idx = 0;
+					return;
+				}
+				idx++;
+			}
+			
+			public override void qmoveBack()
+			{
+				if (idx < 0)
+				{
+					idx = eidx;
+					return;
+				}
+				idx--;
+			}
+			
+			public override bool move()
+			{
+				if (idx >= eidx)
+				{
+					idx = 0;
+					return false;
+				}
+				idx++;
+				return true;
+			}
+			
+			public override bool moveBack()
+			{
+				if (idx < 0)
+				{
+					idx = eidx;
+					return false;
+				}
+				idx--;
+				return true;
+			}
+			
+			public override colour getCol()
+			{
+				colour res = peekCol();
+				qmove();
+				return res;
+			}
+			
+			public override colour peekCol()
+			{
+				int* s = scn0 + idx;
+				return new colour(s);
+			}
+			
+			public override bool getCol(out colour c)
+			{
+				c = peekCol();
+				return move();
+			}
+			
+			public override void qsetCol(colour c)
+			{
+				int* s = scn0 + idx;
+				*s = c.argb;
+				
+				qmove();
+			}
+			
+			public override bool setCol(colour c)
+			{
+				int* s = scn0 + idx;
+				*s = c.argb;
+				
+				return move();
+			}
 		}
 		
 		// iterator
@@ -505,17 +876,50 @@ namespace PyShade
 			int sidx;
 			int idx;
 			int eidx;
+			int* scn0;
 			
 			public bmpRegion(sdi.BitmapData bmpDat)
 			{
 				dat = bmpDat;
+				scn0 = (int*)dat.Scan0;
 			}
 			
 			public override void iterate(int sx, int sy, int ex, int ey)
 			{
 				sidx = sy * dat.Width + sx;
-				idx = sidx;
 				eidx = ey * dat.Width + ex;
+				
+				moveToStart();
+			}
+			
+			public override void moveToStart()
+			{
+				idx = sidx;
+			}
+			
+			public override void moveToEnd()
+			{
+				idx = eidx;
+			}
+			
+			public override void qmove()
+			{
+				if (idx >= eidx)
+				{
+					idx = sidx;
+					return;
+				}
+				idx++;
+			}
+			
+			public override void qmoveBack()
+			{
+				if (idx < sidx)
+				{
+					idx = eidx;
+					return;
+				}
+				idx--;
 			}
 			
 			public override bool move()
@@ -536,26 +940,40 @@ namespace PyShade
 					idx = eidx;
 					return false;
 				}
-				idx++;
+				idx--;
 				return true;
 			}
 			
 			public override colour getCol()
 			{
 				colour res = peekCol();
-				move();
+				qmove();
 				return res;
 			}
 			
 			public override colour peekCol()
 			{
-				int* s = (int*)dat.Scan0 + idx;
+				int* s = scn0 + idx;
 				return new colour(s);
+			}
+			
+			public override bool getCol(out colour c)
+			{
+				c = peekCol();
+				return move();
+			}
+			
+			public override void qsetCol(colour c)
+			{
+				int* s = scn0 + idx;
+				*s = c.argb;
+				
+				qmove();
 			}
 			
 			public override bool setCol(colour c)
 			{
-				int* s = (int*)dat.Scan0 + idx;
+				int* s = scn0 + idx;
 				*s = c.argb;
 				
 				return move();
@@ -623,6 +1041,11 @@ namespace PyShade
 			{
 				return new bmpRegion(bmpDat);
 			}
+			
+			public override iterator getIterator()
+			{
+				return new bmpIterator(bmpDat);
+			}
 		}
 		
 		public class shader
@@ -658,10 +1081,8 @@ namespace PyShade
 			public delegate colour shadeFunc1(colour src);
 			public static void perPixelShade1(shadeFunc1 shadeFunc, surface target, surface surf)
 			{
-				region src = surf.getRegion();
-				src.iterate(0, 0, target.width - 1, target.height - 1);
-				region trg = target.getRegion();
-				trg.iterate(0, 0, target.width - 1, target.height - 1);
+				iterator src = surf.getIterator();
+				iterator trg = target.getIterator();
 			
 				while (trg.setCol(shadeFunc(src.getCol()))) { }
 			}
@@ -669,10 +1090,8 @@ namespace PyShade
 			public delegate colour blendFunc1(colour trg, colour src);
 			public static void perPixelBlend1(blendFunc1 blendFunc, surface target, surface surf)
 			{
-				region src = surf.getRegion();
-				src.iterate(0, 0, target.width - 1, target.height - 1);
-				region trg = target.getRegion();
-				trg.iterate(0, 0, target.width - 1, target.height - 1);
+				iterator src = surf.getIterator();
+				iterator trg = target.getIterator();
 				
 				while (trg.setCol(blendFunc(trg.peekCol(), src.getCol()))) { }
 			}
