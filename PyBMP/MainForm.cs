@@ -55,12 +55,42 @@ namespace PyBMP
 				return this;
 			}
 			
+			public fcol mul(fcol ofc)
+			{
+				a *= ofc.a;
+				r *= ofc.r;
+				g *= ofc.g;
+				b *= ofc.b;
+				
+				return this;
+			}
+			
+			public fcol add(fcol ofc)
+			{
+				a += ofc.a;
+				r += ofc.r;
+				g += ofc.g;
+				b += ofc.b;
+				
+				return this;
+			}
+			
+			public fcol add(fcol ofc, float coof)
+			{
+				a += ofc.a * coof;
+				r += ofc.r * coof;
+				g += ofc.g * coof;
+				b += ofc.b * coof;
+				
+				return this;
+			}
+			
 			public colour toColour()
 			{
-				return new colour(util.clampToByte(a),
-				                  util.clampToByte(r),
-				                  util.clampToByte(g),
-				                  util.clampToByte(b));
+				return new colour(util.clampToByte(a * 255f),
+				                  util.clampToByte(r * 255f),
+				                  util.clampToByte(g * 255f),
+				                  util.clampToByte(b * 255f));
 			}
 		}
 		
@@ -138,9 +168,25 @@ namespace PyBMP
 				                  util.clampToByte(bc + (int)b));
 			}
 			
+			public colour mul(colour oc)
+			{
+				return new colour(util.clampToByte(oc.a * (float)a),
+				                  util.clampToByte(oc.r * (float)r),
+				                  util.clampToByte(oc.g * (float)g),
+				                  util.clampToByte(oc.b * (float)b));
+			}
+			
+			public colour add(colour oc)
+			{
+				return new colour(util.clampToByte(oc.a + (int)a),
+				                  util.clampToByte(oc.r + (int)r),
+				                  util.clampToByte(oc.g + (int)g),
+				                  util.clampToByte(oc.b + (int)b));
+			}
+			
 			public fcol toFCol()
 			{
-				return new fcol(a, r, g, b);
+				return new fcol((float)a / 255f, (float)r / 255f, (float)g / 255f, (float)b / 255f);
 			}
 		}
 		
@@ -212,6 +258,7 @@ namespace PyBMP
 			public virtual void close() { }
 			public abstract colour getCol(int x, int y);
 			public abstract void setCol(int x, int y, colour c);
+			public abstract void clear(colour c);
 			
 			public colour getCol(int x, int y, util.getFunc gf)
 			{
@@ -300,6 +347,19 @@ namespace PyBMP
 			{
 				data[y][x] = c;
 			}
+			
+			public override void clear(colour c)
+			{
+				for (int y = height - 1; y >= 0; y--)
+				{
+					colour[] row = data[y];
+					
+					for (int x = width - 1; x >= 0; x--)
+					{
+						row[x] = c;
+					}
+				}
+			}
 		}
 		
 		public unsafe class bmpSurface : surface
@@ -346,6 +406,17 @@ namespace PyBMP
 				int* s = (int*)bmpDat.Scan0;
 				
 				*(s + y * width + x) = c.argb;
+			}
+			
+			public override void clear(colour c)
+			{
+				int* s = (int*)bmpDat.Scan0;
+				
+				for (int i = width * height; i > 0; i--)
+				{
+					*s = c.argb;
+					s++;
+				}
 			}
 		}
 		
