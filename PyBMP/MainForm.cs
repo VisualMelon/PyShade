@@ -238,6 +238,17 @@ namespace PyShade
 			}
 		}
 		
+		// iterator
+		public abstract unsafe class region
+		{
+			public abstract void iterate(int sx, int sy, int ex, int ey);
+			public abstract bool move();
+			public abstract bool moveBack();
+			public abstract colour getCol();
+			public abstract colour peekCol();
+			public abstract bool setCol(colour c);
+		}
+		
 		public unsafe abstract class surface
 		{
 			int widthL;
@@ -259,6 +270,7 @@ namespace PyShade
 			public abstract colour getCol(int x, int y);
 			public abstract void setCol(int x, int y, colour c);
 			public abstract void clear(colour c);
+			public abstract region getRegion();
 			
 			public colour getCol(int x, int y, util.getFunc gf)
 			{
@@ -322,6 +334,89 @@ namespace PyShade
 			}
 		}
 		
+		// iterator
+		public unsafe class arrayRegion : region
+		{
+			colour[][] data;
+			int w;
+			int h;
+			int sx;
+			int sy;
+			int x;
+			int y;
+			int ex;
+			int ey;
+			
+			public arrayRegion(colour[][] surfData)
+			{
+				data = surfData;
+				h = data.Length;
+				w = data[0].Length;
+			}
+			
+			public override void iterate(int sx, int sy, int ex, int ey)
+			{
+				this.sx = sx;
+				this.sy = sy;
+				x = sx;
+				y = sy;
+				this.ey = ey;
+				this.ex = ex;
+			}
+			
+			public override bool move()
+			{
+				if (y == ey && x >= ex)
+				{
+					x = sx;
+					y = sy;
+					return false;
+				}
+				x++;
+				if (x >= w)
+				{
+					y++;
+					x = 0;
+				}
+				return true;
+			}
+			
+			public override bool moveBack()
+			{
+				x--;
+				if (y == sy && x < sx)
+				{
+					x = ex;
+					y = ey;
+					return false;
+				}
+				if (x < 0)
+				{
+					y--;
+					x = w - 1;
+				}
+				return true;
+			}
+			
+			public override colour getCol()
+			{
+				colour res = peekCol();
+				move();
+				return res;
+			}
+			
+			public override colour peekCol()
+			{
+				return data[y][x];
+			}
+			
+			public override bool setCol(colour c)
+			{
+				data[y][x] = c;
+				return move();
+			}
+		}
+		
 		public unsafe class arraySurface : surface
 		{
 			colour[][] data;
@@ -360,6 +455,75 @@ namespace PyShade
 					}
 				}
 			}
+			
+			public override region getRegion()
+			{
+				return new arrayRegion(data);
+			}
+		}
+		
+		// iterator
+		public unsafe class bmpRegion : region
+		{
+			sdi.BitmapData dat;
+			int sidx;
+			int idx;
+			int eidx;
+			
+			public bmpRegion(sdi.BitmapData bmpDat)
+			{
+				dat = bmpDat;
+			}
+			
+			public override void iterate(int sx, int sy, int ex, int ey)
+			{
+				sidx = sy * dat.Width + sx;
+				idx = sidx;
+				eidx = ey * dat.Width + ex;
+			}
+			
+			public override bool move()
+			{
+				if (idx >= eidx)
+				{
+					idx = sidx;
+					return false;
+				}
+				idx++;
+				return true;
+			}
+			
+			public override bool moveBack()
+			{
+				if (idx < sidx)
+				{
+					idx = eidx;
+					return false;
+				}
+				idx++;
+				return true;
+			}
+			
+			public override colour getCol()
+			{
+				colour res = peekCol();
+				move();
+				return res;
+			}
+			
+			public override colour peekCol()
+			{
+				int* s = (int*)dat.Scan0 + idx;
+				return new colour(s);
+			}
+			
+			public override bool setCol(colour c)
+			{
+				int* s = (int*)dat.Scan0 + idx;
+				*s = c.argb;
+				
+				return move();
+			}
 		}
 		
 		public unsafe class bmpSurface : surface
@@ -370,7 +534,6 @@ namespace PyShade
 			public bmpSurface(string fileName)
 			{
 				Bitmap bmpN = (Bitmap)Bitmap.FromFile(fileName);
-				init(bmpN);
 				bmpN.Dispose();
 			}
 			
@@ -418,6 +581,11 @@ namespace PyShade
 					*s = c.argb;
 					s++;
 				}
+			}
+			
+			public override region getRegion()
+			{
+				return new bmpRegion(bmpDat);
 			}
 		}
 		
@@ -525,10 +693,8 @@ namespace PyShade
 					report("No destination image, using default (default.png)");
 				}
 				
-				//Bitmap tmap = new Bitmap(inImg.Image.Width, inImg.Image.Height);
-				
 				surface insurf = new bmpSurface((Bitmap)inImg.Image);
-				surface target = new arraySurface(inImg.Image.Width, inImg.Image.Height);//new bmpSurface(tmap);
+				surface target = new arraySurface(inImg.Image.Width, inImg.Image.Height);
 				
 				sw.Reset();
 				sw.Start();

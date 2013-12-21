@@ -36,16 +36,17 @@ namespace PyShade
 		/// </summary>
 		private void InitializeComponent()
 		{
+			System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
 			this.splitContainer1 = new System.Windows.Forms.SplitContainer();
 			this.splitContainer2 = new System.Windows.Forms.SplitContainer();
 			this.inImg = new System.Windows.Forms.PictureBox();
 			this.outImg = new System.Windows.Forms.PictureBox();
 			this.codeF = new System.Windows.Forms.TextBox();
+			this.reportF = new System.Windows.Forms.RichTextBox();
 			this.menuStrip1 = new System.Windows.Forms.MenuStrip();
 			this.processToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
 			this.saveFileDialog1 = new System.Windows.Forms.SaveFileDialog();
-			this.reportF = new System.Windows.Forms.RichTextBox();
 			this.splitContainer1.Panel1.SuspendLayout();
 			this.splitContainer1.Panel2.SuspendLayout();
 			this.splitContainer1.SuspendLayout();
@@ -126,10 +127,17 @@ namespace PyShade
 			this.codeF.ScrollBars = System.Windows.Forms.ScrollBars.Both;
 			this.codeF.Size = new System.Drawing.Size(439, 164);
 			this.codeF.TabIndex = 0;
-			this.codeF.Text = "yrange = range(target.height)\r\nxrange = range(target.width)\r\ngetc = surfs[0].getC" +
-			"ol_clamp\r\nsetc = target.setCol_clamp\r\n\r\nfor y in yrange:\r\n\tfor x in xrange:\r\n\t\tc" +
-			"ol = getc(x, y)\r\n\t\tsetc(x, y, col)";
+			this.codeF.Text = resources.GetString("codeF.Text");
 			this.codeF.WordWrap = false;
+			// 
+			// reportF
+			// 
+			this.reportF.Dock = System.Windows.Forms.DockStyle.Bottom;
+			this.reportF.Location = new System.Drawing.Point(0, 164);
+			this.reportF.Name = "reportF";
+			this.reportF.Size = new System.Drawing.Size(439, 96);
+			this.reportF.TabIndex = 1;
+			this.reportF.Text = "";
 			// 
 			// menuStrip1
 			// 
@@ -156,15 +164,6 @@ namespace PyShade
 			// 
 			this.saveFileDialog1.DefaultExt = "png";
 			this.saveFileDialog1.Filter = "PNGs|*.png";
-			// 
-			// reportF
-			// 
-			this.reportF.Dock = System.Windows.Forms.DockStyle.Bottom;
-			this.reportF.Location = new System.Drawing.Point(0, 164);
-			this.reportF.Name = "reportF";
-			this.reportF.Size = new System.Drawing.Size(439, 96);
-			this.reportF.TabIndex = 1;
-			this.reportF.Text = "";
 			// 
 			// MainForm
 			// 
