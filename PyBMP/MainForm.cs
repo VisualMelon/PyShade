@@ -430,7 +430,7 @@ namespace PyShade
 			}
 		}
 		
-		// iterator
+		// iterator - heavily inlined
 		public unsafe class arrayIterator : iterator
 		{
 			colour[][] data;
@@ -536,8 +536,24 @@ namespace PyShade
 			
 			public override colour getCol()
 			{
-				colour res = peekCol();
-				qmove();
+				// peek
+				colour res = row[x];
+				
+				// qmove
+				if (x >= wm1)
+				{
+					x = 0;
+					if (y >= hm1)
+					{
+						y = 0;
+					}
+					else
+						y++;
+					row = data[y];
+				}
+				else
+					x++;
+				
 				return res;
 			}
 			
@@ -548,20 +564,70 @@ namespace PyShade
 			
 			public override bool getCol(out colour c)
 			{
-				c = peekCol();
-				return move();
+				// peek
+				c = row[x];
+				
+				// move
+				if (x >= wm1)
+				{
+					x = 0;
+					if (y >= hm1)
+					{
+						y = 0;
+						row = data[y];
+						return false;
+					}
+					y++;
+					row = data[y];
+				}
+				else
+					x++;
+				return true;
 			}
 			
 			public override void qsetCol(colour c)
 			{
+				// set
 				row[x] = c;
-				qmove();
+				
+				// qmove
+				if (x >= wm1)
+				{
+					x = 0;
+					if (y >= hm1)
+					{
+						y = 0;
+					}
+					else
+						y++;
+					row = data[y];
+				}
+				else
+					x++;
+				return;
 			}
 			
 			public override bool setCol(colour c)
 			{
+				// set
 				row[x] = c;
-				return move();
+				
+				// move
+				if (x >= wm1)
+				{
+					x = 0;
+					if (y >= hm1)
+					{
+						y = 0;
+						row = data[y];
+						return false;
+					}
+					y++;
+					row = data[y];
+				}
+				else
+					x++;
+				return true;
 			}
 		}
 		
@@ -569,6 +635,7 @@ namespace PyShade
 		public unsafe class arrayRegion : region
 		{
 			colour[][] data;
+			
 			colour[] row;
 			int w;
 			int h;
@@ -796,9 +863,9 @@ namespace PyShade
 				if (idx >= eidx)
 				{
 					idx = 0;
-					return;
 				}
-				idx++;
+				else
+					idx++;
 			}
 			
 			public override void qmoveBack()
@@ -806,9 +873,9 @@ namespace PyShade
 				if (idx < 0)
 				{
 					idx = eidx;
-					return;
 				}
-				idx--;
+				else
+					idx--;
 			}
 			
 			public override bool move()
@@ -835,37 +902,67 @@ namespace PyShade
 			
 			public override colour getCol()
 			{
+				// peek
 				colour res = peekCol();
-				qmove();
+				
+				// qmove
+				if (idx >= eidx)
+				{
+					idx = 0;
+				}
+				else
+					idx++;
+				
 				return res;
 			}
 			
 			public override colour peekCol()
 			{
-				int* s = scn0 + idx;
-				return new colour(s);
+				return new colour(scn0 + idx);
 			}
 			
 			public override bool getCol(out colour c)
 			{
-				c = peekCol();
-				return move();
+				// peek
+				c = new colour(scn0 + idx);
+				
+				// move
+				if (idx >= eidx)
+				{
+					idx = 0;
+					return false;
+				}
+				idx++;
+				return true;
 			}
 			
 			public override void qsetCol(colour c)
 			{
-				int* s = scn0 + idx;
-				*s = c.argb;
+				// set
+				*(scn0 + idx) = c.argb;
 				
-				qmove();
+				// qmove
+				if (idx >= eidx)
+				{
+					idx = 0;
+				}
+				else
+					idx++;
 			}
 			
 			public override bool setCol(colour c)
 			{
-				int* s = scn0 + idx;
-				*s = c.argb;
+				// set
+				*(scn0 + idx) = c.argb;
 				
-				return move();
+				// move
+				if (idx >= eidx)
+				{
+					idx = 0;
+					return false;
+				}
+				idx++;
+				return true;
 			}
 		}
 		
