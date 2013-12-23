@@ -391,38 +391,35 @@ namespace PyShade
 				Bitmap bmp = new Bitmap(width, height);
 				sdi.BitmapData bmpDat = bmp.LockBits(new Rectangle(0, 0, width, height), sdi.ImageLockMode.WriteOnly, sdi.PixelFormat.Format32bppArgb);
 				
-				for (int i = 0; i < 20; i++)
-				{
-					int* s = (int*)bmpDat.Scan0;
+				int* s = (int*)bmpDat.Scan0;
+			
+				iterator r = getIterator();
 				
-					iterator r = getIterator();
+				colour c;
+				while (r.getCol(out c))
+				{
+					*s = c.argb;
+					s++;
+				}
+				*s = c.argb; // catch last pil
+				
+//				do
+//				{
+//					*s = r.peekCol().argb;
+//					s++;
+//				}
+//				while (r.move());
+//		
+//				s = (int*)bmpDat.Scan0;
 					
-					colour c;
-					while (r.getCol(out c))
-					{
-						*s = c.argb;
-						s++;
-					}
-					*s = c.argb; // catch last pil
-					
-//					do
+//				for (int y = 0; y < height; y++)
+//				{
+//					for (int x = 0; x < width; x++)
 //					{
-//						*s = r.peekCol().argb;
+//						*s = getCol(x, y).argb;
 //						s++;
 //					}
-//					while (r.move());
-				
-//					s = (int*)bmpDat.Scan0;
-//					
-//					for (int y = 0; y < height; y++)
-//					{
-//						for (int x = 0; x < width; x++)
-//						{
-//							*s = getCol(x, y).argb;
-//							s++;
-//						}
-//					}
-				}
+//				}
 				
 				bmp.UnlockBits(bmpDat);
 				bmp.Save(fileName, sdi.ImageFormat.Png);
@@ -903,7 +900,7 @@ namespace PyShade
 			public override colour getCol()
 			{
 				// peek
-				colour res = peekCol();
+				colour res = new colour(scn0 + idx);
 				
 				// qmove
 				if (idx >= eidx)
@@ -1175,6 +1172,14 @@ namespace PyShade
 				}
 			}
 			
+			public static colour dull(colour c)
+			{
+				if (c.r > 128)
+					return c.clone(255, -1, 0, 0);
+				else
+					return c.clone(255, 0, -1, -1);
+			}
+			
 			public delegate colour shadeFunc1(colour src);
 			public static void perPixelShade1(shadeFunc1 shadeFunc, surface target, surface surf)
 			{
@@ -1200,6 +1205,7 @@ namespace PyShade
 				pyScope.SetVariable("reporter", reporter);
 				pyScope.SetVariable("pps1", new Action<shadeFunc1, surface, surface>(perPixelShade1));
 				pyScope.SetVariable("ppb1", new Action<blendFunc1, surface, surface>(perPixelBlend1));
+				pyScope.SetVariable("dull", new shadeFunc1(dull));
 				
 				try
 				{
@@ -1214,11 +1220,17 @@ namespace PyShade
 			}
 		}
 		
+		public class lck
+		{
+			public bool locked = false;
+		}
+		
 		public MainForm()
 		{
 			InitializeComponent();
 			reportMsg = new Action<string>(reportFT); // this side
 			reporter = new Action<string>(report); // other threads
+			processer = new Action(process);
 		}
 		
 		Action<string> reportMsg;
@@ -1241,11 +1253,36 @@ namespace PyShade
 			this.Invoke(reportMsg, msg);
 		}
 		
+		lck procLck = new lck();
+		Action processer;
 		void ProcessToolStripMenuItemClick(object sender, EventArgs e)
 		{
-			(new Action(process)).BeginInvoke(null, null);
+			lock (procLck)
+			{
+				if (procLck.locked)
+					return;
+				
+				procLck.locked = true;
+				processToolStripMenuItem.Enabled = false;
+				processer.BeginInvoke(endProcess, null);
+			}
 		}
 		
+		void resetProcessCmd()
+		{
+			lock (procLck)
+			{
+				processToolStripMenuItem.Enabled = true;
+				procLck.locked = false;
+			}
+		}
+		
+		void endProcess(IAsyncResult iar)
+		{
+			this.Invoke(new Action(resetProcessCmd));
+		}
+		
+		lck imgLck = new lck();
 		void process()
 		{
 			try
@@ -1271,8 +1308,13 @@ namespace PyShade
 				
 				sw.Reset();
 				sw.Start();
-				surface insurf = new bmpSurface((Bitmap)inImg.Image);
-				surface target = new arraySurface(inImg.Image.Width, inImg.Image.Height);
+				surface insurf;
+				surface target;
+				lock (imgLck)
+				{
+					insurf = new bmpSurface((Bitmap)inImg.Image);
+					target = new arraySurface(insurf.width, insurf.height);
+				}
 				sw.Stop();
 				report("Setup surfaces (" + sw.ElapsedMilliseconds + "ms)");
 				
@@ -1288,7 +1330,7 @@ namespace PyShade
 				
 				sw.Reset();
 				sw.Start();
-				carryon = shade.process(target, new surface[] { insurf }, reporter);
+				carryon = shade.process(target, new surface[] { insurf }, report);
 				sw.Stop();
 				if (carryon)
 					report("Processed (" + sw.ElapsedMilliseconds + "ms)");
@@ -1343,10 +1385,13 @@ namespace PyShade
 		
 		void updateImgs()
 		{
-			if (System.IO.File.Exists(inImgLoc))
-				inImg.ImageLocation = inImgLoc;
-			if (System.IO.File.Exists(outImgLoc))
-				outImg.ImageLocation = outImgLoc;
+			lock (imgLck)
+			{
+				if (System.IO.File.Exists(inImgLoc))
+					inImg.ImageLocation = inImgLoc;
+				if (System.IO.File.Exists(outImgLoc))
+					outImg.ImageLocation = outImgLoc;
+			}
 		}
 	}
 }
