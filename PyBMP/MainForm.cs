@@ -1180,12 +1180,23 @@ namespace PyShade
 					return c.clone(255, 0, -1, -1);
 			}
 			
+			public static colour inv(colour c)
+			{
+				return new colour(c.a, (byte)(255 - c.r), (byte)(255 - c.g), (byte)(255 - c.b));
+			}
+			
+			public static colour grey(colour c)
+			{
+				byte avg = (byte)(((int)c.r + (int)c.g + (int)c.b) / 3);
+				return new colour(c.a, avg, avg, avg);
+			}
+			
 			public delegate colour shadeFunc1(colour src);
 			public static void perPixelShade1(shadeFunc1 shadeFunc, surface target, surface surf)
 			{
 				iterator src = surf.getIterator();
 				iterator trg = target.getIterator();
-			
+				
 				while (trg.setCol(shadeFunc(src.getCol()))) { }
 			}
 			
@@ -1206,6 +1217,8 @@ namespace PyShade
 				pyScope.SetVariable("pps1", new Action<shadeFunc1, surface, surface>(perPixelShade1));
 				pyScope.SetVariable("ppb1", new Action<blendFunc1, surface, surface>(perPixelBlend1));
 				pyScope.SetVariable("dull", new shadeFunc1(dull));
+				pyScope.SetVariable("inv", new shadeFunc1(inv));
+				pyScope.SetVariable("grey", new shadeFunc1(grey));
 				
 				try
 				{
@@ -1232,6 +1245,7 @@ namespace PyShade
 			reporter = new Action<string>(report); // other threads
 			processer = new Action(process);
 		}
+		surface target;
 		
 		Action<string> reportMsg;
 		void reportFT(string msg)
@@ -1309,11 +1323,14 @@ namespace PyShade
 				sw.Reset();
 				sw.Start();
 				surface insurf;
-				surface target;
 				lock (imgLck)
 				{
 					insurf = new bmpSurface((Bitmap)inImg.Image);
-					target = new arraySurface(insurf.width, insurf.height);
+					if (target == null || target.width != insurf.width || target.height != insurf.height)
+					{
+						report("Old Target surface wrong size, creating blank...");
+						target = new arraySurface(insurf.width, insurf.height);
+					}
 				}
 				sw.Stop();
 				report("Setup surfaces (" + sw.ElapsedMilliseconds + "ms)");
